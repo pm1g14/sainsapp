@@ -11,7 +11,7 @@ public class SainsAppServiceTest {
 
     private SainsAppService service;
 
-    private static final String EXPECTED_PRODUCTS_JSON = "{\"results\":[{\"title\":\"product name\",\"kcal_per_100g\":\"100kcal\",\"unit_price\":\"1.10\",\"description\":\"some description\"}],\"total\":1.10}";
+    private static final String EXPECTED_PRODUCTS_JSON = "{\"results\":[{\"title\":\"product name\",\"kcal_per_100g\":\"100kcal\",\"unit_price\":\"1.1\",\"description\":\"some description\"}],\"total\":1.10}";
 
     @Before
     public void setup() {
