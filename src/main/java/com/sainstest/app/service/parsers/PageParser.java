@@ -1,7 +1,7 @@
 package com.sainstest.app.service.parsers;
 
 import com.sainstest.app.service.constants.SainsAppConstants;
-import com.sainstest.app.service.parsers.constants.HtmlElements;
+import com.sainstest.app.service.parsers.constants.HtmlSelectors;
 import com.sainstest.app.service.utils.ProductsUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.jsoup.Jsoup;
@@ -64,7 +64,7 @@ public class PageParser {
      * @return Elements.
      */
     public Elements getProducts(){
-        Elements products = doc.select(HtmlElements.DIV_PRODUCT);
+        Elements products = doc.select(HtmlSelectors.DIV_PRODUCT);
         return (products != null) ? products : new Elements();
     }
 
@@ -75,7 +75,7 @@ public class PageParser {
      * @return List.
      */
     public List<String> getPricesPerUnit() {
-        Elements prices = doc.select(HtmlElements.P_PRICE_PER_UNIT);
+        Elements prices = doc.select(HtmlSelectors.P_PRICE_PER_UNIT);
         List<String> pricesList = new ArrayList<String>();
 
         if (prices == null) {
@@ -104,12 +104,12 @@ public class PageParser {
      */
     public List<String> getProductTitles() {
         List<String> titlesList = new ArrayList<String>();
-        Elements headings = doc.select(HtmlElements.DIV_PRODUCT_TITLE);
+        Elements headings = doc.select(HtmlSelectors.DIV_PRODUCT_TITLE);
 
         if (headings == null) {
             return titlesList;
         }
-        Elements alinks = headings.select(HtmlElements.H3_HEADING_DIRECT_A_LINK);
+        Elements alinks = headings.select(HtmlSelectors.H3_HEADING_DIRECT_A_LINK);
 
         for (Element element : alinks) {
 
@@ -143,7 +143,7 @@ public class PageParser {
 
         Document doc;
         for (String alink : alinks) {
-            alink = ProductsUtils.convertFromRelativeLink(alink, "https://jsainsburyplc.github.io/serverside-test/site/www.sainsburys.co.uk/");
+            alink = ProductsUtils.convertFromRelativeLink(alink, SainsAppConstants.BASE_URL);
 
             if (!StringUtil.isBlank(alink)) {
                 doc = Jsoup.connect(alink).get();
@@ -163,23 +163,26 @@ public class PageParser {
                         List<Node> nodesList = description.childNodes();
 
                         if (nodesList == null) {
-                            continue;
+                            return null;
                         }
-                        boolean isDescriptionAvailable = false;
+                        int i = 0;
                         for (Node node : nodesList) {
 
-                            if (node != null && node.toString().equalsIgnoreCase(SainsAppConstants.DESCRIPTION)) {
-                                isDescriptionAvailable = true;
-                            }
-                            else if (node != null && isDescriptionAvailable) {
+                            if (node != null) {
+
+                                if (node.toString().contains(SainsAppConstants.DESCRIPTION) || StringUtil.isBlank(node.toString())) {
+                                    ++i;
+                                    continue;
+                                }
+                                node = description.childNodes().get(i);
                                 productDescriptions.add(node.toString());
                                 break;
                             }
                         }
+                        break;
                     }
                 }
             }
-
         }
         return productDescriptions;
     }
@@ -192,10 +195,10 @@ public class PageParser {
      */
     public List<String> getProductLinksToDetails() {
         List<String> alinksList = new ArrayList<String>();
-        Elements headings = doc.select(HtmlElements.DIV_PRODUCT_TITLE);
+        Elements headings = doc.select(HtmlSelectors.DIV_PRODUCT_TITLE);
 
         if (headings != null) {
-            Elements alinks = headings.select(HtmlElements.H3_HEADING_DIRECT_A_LINK);
+            Elements alinks = headings.select(HtmlSelectors.H3_HEADING_DIRECT_A_LINK);
 
             for (Element element : alinks) {
 
@@ -260,30 +263,7 @@ public class PageParser {
         for (Element tableElement : nutritionTable) {
 
             if (hasChildren(tableElement)) {
-                boolean hasEnergyKcalCell = false;
-                List<Node> nodesList = tableElement.childNodes();
-
-                if (nodesList == null) {
-                    continue;
-                }
-
-                for (Node node: nodesList) {
-
-                    if (node == null) {
-                        continue;
-                    }
-
-                    String cellContent = node.toString();
-
-                    if (cellContent.contains(SainsAppConstants.ENERGY_KCAL)) {
-                        hasEnergyKcalCell = true;
-
-                    } else if (cellContent.contains(SainsAppConstants.KCAL) || hasEnergyKcalCell) {
-                        cellContent = StringEscapeUtils.escapeHtml(cellContent).replaceAll(REGEX_ESCAPED_CHARS, SainsAppConstants.EMPTY_STRING);
-                        kcalPer100gList.add(cellContent);
-                        break;
-                    }
-                }
+                addKcalPer100gEntryToList(kcalPer100gList, tableElement);
             }
         }
     }
@@ -298,11 +278,11 @@ public class PageParser {
      */
     private Elements getNutritionTable(Document doc) {
         Elements nutritionTable = null;
-        if (hasHtmlElement(doc, HtmlElements.NUTRITION_TABLE)) {
-            nutritionTable = doc.select(HtmlElements.NUTRITION_TABLE);
+        if (hasHtmlElement(doc, HtmlSelectors.NUTRITION_TABLE)) {
+            nutritionTable = doc.select(HtmlSelectors.NUTRITION_TABLE);
 
-        } else if (hasHtmlElement(doc, HtmlElements.NUTRITION_TABLE_WITHOUT_TABLEROW_ELEMENT)) {
-            nutritionTable = doc.select(HtmlElements.NUTRITION_TABLE_WITHOUT_TABLEROW_ELEMENT);
+        } else if (hasHtmlElement(doc, HtmlSelectors.NUTRITION_TABLE_WITHOUT_TABLEROW_ELEMENT)) {
+            nutritionTable = doc.select(HtmlSelectors.NUTRITION_TABLE_WITHOUT_TABLEROW_ELEMENT);
         }
         return nutritionTable;
     }
@@ -344,11 +324,52 @@ public class PageParser {
      */
     private Elements getDescriptionElements(Document doc) {
         Elements descriptions = null;
-        if (hasHtmlElement(doc, HtmlElements.P_PRODUCT_DESCRIPTION)) {
-            descriptions = doc.select(HtmlElements.P_PRODUCT_DESCRIPTION);
-        } else if (hasHtmlElement(doc, HtmlElements.P_PRODUCT_DESCRIPTION_WITH_ITEM_TYPE_GROUP)) {
-            descriptions = doc.select(HtmlElements.P_PRODUCT_DESCRIPTION_WITH_ITEM_TYPE_GROUP);
+        if (hasHtmlElement(doc, HtmlSelectors.P_PRODUCT_DESCRIPTION)) {
+            descriptions = doc.select(HtmlSelectors.P_PRODUCT_DESCRIPTION);
+        } else if (hasHtmlElement(doc, HtmlSelectors.P_PRODUCT_DESCRIPTION_WITH_ITEM_TYPE_GROUP)) {
+            descriptions = doc.select(HtmlSelectors.P_PRODUCT_DESCRIPTION_WITH_ITEM_TYPE_GROUP);
         }
         return descriptions;
+    }
+
+
+//    private void addProductDescriptionToList(List<String> productDescriptions, Element description) {
+//        Node node = description.childNodes().get(0);
+//
+//        if (node != null && !StringUtil.isBlank(node.toString())) {
+//            if (SainsAppConstants.DESCRIPTION.equalsIgnoreCase(node.toString())) {
+//                continue;
+//            }
+//            productDescriptions.add(node.toString());
+//            break;
+//        }
+//    }
+
+
+    private void addKcalPer100gEntryToList(List<String> kcalPer100gList, Element tableElement) {
+        boolean hasEnergyKcalCell = false;
+        List<Node> nodesList = tableElement.childNodes();
+
+        if (nodesList == null) {
+            return;
+        }
+
+        for (Node node: nodesList) {
+
+            if (node == null) {
+                continue;
+            }
+
+            String cellContent = node.toString();
+
+            if (cellContent.contains(SainsAppConstants.ENERGY_KCAL)) {
+                hasEnergyKcalCell = true;
+
+            } else if (cellContent.contains(SainsAppConstants.KCAL) || hasEnergyKcalCell) {
+                cellContent = StringEscapeUtils.escapeHtml(cellContent).replaceAll(REGEX_ESCAPED_CHARS, SainsAppConstants.EMPTY_STRING);
+                kcalPer100gList.add(cellContent);
+                break;
+            }
+        }
     }
 }

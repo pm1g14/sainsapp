@@ -13,10 +13,10 @@ public class PageScraper {
 
     public static void main(String...args) throws Exception{
 
-        if (args == null) {
+        if (args == null || args.length == 0) {
             throw new SainsAppException(SainsAppExceptionCodes.NO_URL_PARAM.getMessage());
         }
-        PageParser parser = PageParser.getPageParser("https://jsainsburyplc.github.io/serverside-test/site/www.sainsburys.co.uk/webapp/wcs/stores/servlet/gb/groceries/berries-cherries-currants6039.html");
+        PageParser parser = PageParser.getPageParser(args[0]);
 
         if (parser != null) {
             SainsAppService service = new SainsAppService(getProductDetailsDTO(parser));

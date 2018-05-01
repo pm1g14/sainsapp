@@ -1,10 +1,6 @@
 package com.sainstest.app.service.utils;
 
 import com.sainstest.app.service.dto.ProductDetailsDTO;
-import com.sainstest.app.service.parsers.constants.HtmlElements;
-import org.jsoup.nodes.Element;
-import org.jsoup.parser.Tag;
-import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 import java.util.List;
